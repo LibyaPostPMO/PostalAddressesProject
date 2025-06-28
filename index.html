@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحليل تدفقات مشروع العنونة البريدية</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+            background-color: #f9f9f9;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header img {
+            height: 80px;
+            margin-bottom: 5px;
+        }
+        .header-title {
+            margin: 0;
+            padding: 0;
+        }
+        .header-title h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 32px;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+        .header-title h2 {
+            color: #4a6fa5;
+            margin: 2px 0 0 0;
+            font-size: 18px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1.page-title {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            font-family: Arial, sans-serif;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 0 5px rgba(0,0,0,0.05);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        .data-table th, 
+        .data-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            color: black;
+        }
+        .data-table th {
+            background-color: #4a6fa5;
+            color: white;
+            font-weight: bold;
+        }
+        .data-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .data-table tr:hover {
+            background-color: #e9f5ff;
+        }
+        .total-row {
+            background-color: #e8f4f8;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .amount {
+            font-family: Arial, sans-serif;
+            text-align: right;
+            font-weight: bold;
+        }
+        .summary {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+            border-left: 5px solid #4a6fa5;
+            font-family: Arial, sans-serif;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            font-family: Arial, sans-serif;
+        }
+        .summary-item {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.05);
+            font-family: Arial, sans-serif;
+        }
+        .summary-item strong {
+            color: #4a6fa5;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+        }
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+            font-family: Arial, sans-serif;
+        }
+        .chart-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            height: 400px;
+            font-family: Arial, sans-serif;
+        }
+        .chart-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+        }
+        .gauges-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .gauge-container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+            text-align: center;
+            height: 250px;
+        }
+        .gauge-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        .gauge-wrapper {
+            position: relative;
+            width: 100%;
+            height: 180px;
+        }
+        .gauge-value {
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: bold;
+        }
+        @media (max-width: 768px) {
+            .charts-container, .gauges-container {
+                grid-template-columns: 1fr;
+            }
+            .header-title h1 {
+                font-size: 24px;
+            }
+            .header-title h2 {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="logo.png" alt="بريد ليبيا">
+        <div class="header-title">
+            <h1>شركة بريد ليبيا</h1>
+            <h2>مكتب إدارة المشاريع</h2>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h1 class="page-title">تحليل تدفقات مشروع العنونة البريدية</h1>
+        
+        <h2>بيانات المراحل</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>المرحلة</th>
+                    <th>التصنيع</th>
+                    <th>التركيب</th>
+                    <th>المبلغ المسدد</th>
+                    <th>تاريخ السداد</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>المرحلة التجريبية</td>
+                    <td>112,718</td>
+                    <td>30,080</td>
+                    <td class="amount">946,855.000 د.ل</td>
+                    <td>2023-12-26</td>
+                </tr>
+                <tr>
+                    <td>دفعة 2</td>
+                    <td>-</td>
+                    <td>27,557</td>
+                    <td class="amount">504,840.000 د.ل</td>
+                    <td>2024-03-20</td>
+                </tr>
+                <tr>
+                    <td>دفعة 3</td>
+                    <td>-</td>
+                    <td>7,371</td>
+                    <td class="amount">858,200.000 د.ل</td>
+                    <td>2024-04-07</td>
+                </tr>
+                <tr>
+                    <td>دفعة 4</td>
+                    <td>-</td>
+                    <td>26,931</td>
+                    <td class="amount">568,890.000 د.ل</td>
+                    <td>2024-10-14</td>
+                </tr>
+                <tr>
+                    <td>دفعة 5</td>
+                    <td>-</td>
+                    <td>298</td>
+                    <td class="amount">280,805.000 د.ل</td>
+                    <td>2024-12-18</td>
+                </tr>
+                <tr>
+                    <td>المرحلة الأولى</td>
+                    <td>100,208</td>
+                    <td>-</td>
+                    <td class="amount">3,081,385.600 د.ل</td>
+                    <td>2025-02-12</td>
+                </tr>
+                <tr>
+                    <td>دفعة 2</td>
+                    <td>100,110</td>
+                    <td>54,717</td>
+                    <td class="amount">3,081,385.800 د.ل</td>
+                    <td>2025-05-11</td>
+                </tr>
+                <tr>
+                    <td>دفعة 3</td>
+                    <td>100,338</td>
+                    <td>732</td>
+                    <td class="amount">3,088,403.640 د.ل</td>
+                    <td>2025-06-01</td>
+                </tr>
+                <tr>
+                    <td>دفعة 4</td>
+                    <td>100,178</td>
+                    <td>-</td>
+                    <td class="amount">3,426,088.780 د.ل</td>
+                    <td>2025-07-15  (متوقع)</td>
+                </tr>
+                <tr>
+                    <td>دفعة 5</td>
+                    <td>99,260</td>
+                    <td>-</td>
+                    <td class="amount">3,394,692.050 د.ل</td>
+                    <td>2025-08-12  (متوقع)</td>
+                </tr>
+                <tr class="total-row">
+                    <td>الإجمالي</td>
+                    <td>612,812</td>
+                    <td>147,686</td>
+                    <td class="amount">12,410,765.040 د.ل</td>
+                    <td>-</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div class="summary">
+            <h2>مؤشرات أنجاز مشروع العنونة البريدية</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <strong>عدد اللوحات المتعاقد عليها</strong>
+                    <span>612,812</span>
+                </div>
+                <div class="summary-item">
+                    <strong>موازنة المشروع</strong>
+                    <span>24,116,250 د.ل</span>
+                </div>
+                <div class="summary-item">
+                    <strong>إجمالي التصنيع</strong>
+                    <span>612,812 (100%)</span>
+                </div>
+                <div class="summary-item">
+                    <strong>إجمالي التركيب</strong>
+                    <span>147,686 (24%)</span>
+                </div>
+                <div class="summary-item">
+                    <strong>المتبقي للتركيب</strong>
+                    <span>465,126 (76%)</span>
+                </div>
+                <div class="summary-item">
+                    <strong>القيمة المسددة</strong>
+                    <span>12,410,765.040 د.ل</span>
+                </div>
+                <div class="summary-item">
+                    <strong>الإنجاز المالي</strong>
+                    <span>50.5%</span>
+                </div>
+                <div class="summary-item">
+                    <strong>إنجاز المشروع</strong>
+                    <span>89.7%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-container">
+                <div class="chart-title">أنجاز أعمال التركيب</div>
+                <canvas id="installationChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">مقارنة التصنيع والتركيب حسب المرحلة</div>
+                <canvas id="manufacturingChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">المبالغ المسددة إزاء الزمن</div>
+                <canvas id="paymentChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">المبالغ المسددة التراكمية إزاء تواريخ السداد</div>
+                <canvas id="cumulativePaymentChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">التصنيع إزاء تواريخ السداد</div>
+                <canvas id="manufacturingProgressChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">التركيبات إزاء تواريخ السداد</div>
+                <canvas id="installationProgressChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-title">مؤشرات تقدم المشروع</div>
+            <div class="gauges-container">
+                <div class="gauge-container">
+                    <div class="gauge-title">التصنيع</div>
+                    <div class="gauge-wrapper">
+                        <canvas id="manufacturingGauge"></canvas>
+                        <div class="gauge-value">100.0%</div>
+                    </div>
+                </div>
+                <div class="gauge-container">
+                    <div class="gauge-title">التركيب</div>
+                    <div class="gauge-wrapper">
+                        <canvas id="installationGauge"></canvas>
+                        <div class="gauge-value">24.0%</div>
+                    </div>
+                </div>
+                <div class="gauge-container">
+                    <div class="gauge-title">الإنجاز المالي</div>
+                    <div class="gauge-wrapper">
+                        <canvas id="financialGauge"></canvas>
+                        <div class="gauge-value">50.5%</div>
+                    </div>
+                </div>
+                <div class="gauge-container">
+                    <div class="gauge-title">إنجاز المشروع</div>
+                    <div class="gauge-wrapper">
+                        <canvas id="projectGauge"></canvas>
+                        <div class="gauge-value">89.7%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // بيانات المدفوعات والتصنيع والتركيب
+            const paymentDates = [
+                '2023-12-26', '2024-03-20', '2024-04-07', 
+                '2024-10-14', '2024-12-18', '2025-02-12',
+                '2025-05-11', '2025-06-01', '2025-07-15', 
+                '2025-08-12'
+            ];
+            
+            const paymentAmounts = [
+                946855, 504840, 858200, 568890, 
+                280805, 3081385.6, 3081385.8, 
+                3088403.64, 3426088.784, 3394692.054
+            ];
+            
+            const manufacturingData = [
+                112718, 112718, 112718, 112718, 
+                112718, 212926, 313036, 413374, 
+                513552, 612812
+            ];
+            
+            const installationData = [
+                30080, 57637, 65008, 91939, 
+                92237, 92237, 146954, 147686, 
+                147686, 147686
+            ];
+
+            // حساب المبالغ التراكمية
+            const cumulativePayments = [];
+            let runningTotal = 0;
+            paymentAmounts.forEach(amount => {
+                runningTotal += amount;
+                cumulativePayments.push(runningTotal);
+            });
+
+            // Get max value for consistent Y-axis scaling
+            const maxManufacturingValue = Math.max(...manufacturingData);
+            const maxInstallationValue = Math.max(...installationData);
+            const maxYValue = Math.max(maxManufacturingValue, maxInstallationValue);
+
+            // مخطط التركيب
+            const installationCtx = document.getElementById('installationChart').getContext('2d');
+            new Chart(installationCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['المكتمل (24.0%)', 'المتبقي (76.0%)'],
+                    datasets: [{
+                        data: [147686, 465126],
+                        backgroundColor: ['#4CAF50', '#FF9800'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        }
+                    }
+                }
+            });
+
+            // مخطط التصنيع والتركيب
+            const manufacturingCtx = document.getElementById('manufacturingChart').getContext('2d');
+            new Chart(manufacturingCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['المرحلة التجريبية', 'المرحلة الأولى', 'المشروع (المرحلتين)'],
+                    datasets: [
+                        {
+                            label: 'التصنيع',
+                            data: [112718, 500094, 612812],
+                            backgroundColor: '#2196F3',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'التركيب',
+                            data: [92237, 55449, 147686],
+                            backgroundColor: '#FF5722',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // مخطط المدفوعات العادية
+            const paymentCtx = document.getElementById('paymentChart').getContext('2d');
+            new Chart(paymentCtx, {
+                type: 'line',
+                data: {
+                    labels: paymentDates,
+                    datasets: [{
+                        data: paymentAmounts,
+                        borderColor: '#9C27B0',
+                        backgroundColor: 'rgba(156, 39, 176, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' د.ل';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // مخطط المدفوعات التراكمية
+            const cumulativePaymentCtx = document.getElementById('cumulativePaymentChart').getContext('2d');
+            new Chart(cumulativePaymentCtx, {
+                type: 'line',
+                data: {
+                    labels: paymentDates,
+                    datasets: [{
+                        data: cumulativePayments,
+                        borderColor: '#4a6fa5',
+                        backgroundColor: 'rgba(74, 111, 165, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'المبلغ التراكمي: ' + context.parsed.y.toLocaleString() + ' د.ل';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' د.ل';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // مخطط تقدم التصنيع
+            const manufacturingProgressCtx = document.getElementById('manufacturingProgressChart').getContext('2d');
+            new Chart(manufacturingProgressCtx, {
+                type: 'line',
+                data: {
+                    labels: paymentDates,
+                    datasets: [{
+                        data: manufacturingData,
+                        borderColor: '#2196F3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'الكمية المصنعة: ' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: maxYValue,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // مخطط تقدم التركيب
+            const installationProgressCtx = document.getElementById('installationProgressChart').getContext('2d');
+            new Chart(installationProgressCtx, {
+                type: 'line',
+                data: {
+                    labels: paymentDates,
+                    datasets: [{
+                        data: installationData,
+                        borderColor: '#FF5722',
+                        backgroundColor: 'rgba(255, 87, 34, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'الكمية المثبتة: ' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: maxYValue,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // إنشاء مقاييس السرعة (Speedometer)
+            function createGauge(id, value, color) {
+                const ctx = document.getElementById(id).getContext('2d');
+                return new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        datasets: [{
+                            data: [value, 100 - value],
+                            backgroundColor: [color, '#f5f5f5'],
+                            borderWidth: 0,
+                            circumference: 180,
+                            rotation: 270
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '80%',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                enabled: false
+                            }
+                        },
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        }
+                    }
+                });
+            }
+
+            function getColorForValue(value) {
+                if (value >= 80) return '#4CAF50';
+                if (value >= 50) return '#FFC107';
+                return '#FF5722';
+            }
+
+            // إنشاء مقاييس السرعة للمؤشرات
+            createGauge('manufacturingGauge', 100.0, getColorForValue(100));
+            createGauge('installationGauge', 24.0, getColorForValue(23));
+            createGauge('financialGauge', 50.5, getColorForValue(51));
+            createGauge('projectGauge', 89.7, getColorForValue(89.7));
+        });
+    </script>
+</body>
+</html>
